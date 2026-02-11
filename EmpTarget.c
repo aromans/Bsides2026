@@ -148,9 +148,6 @@ int main()
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
-    gpio_init(1);
-    gpio_set_dir(1, 0);
-
     glitch();
 
     uart_puts(UART_PORT, "U-Boot 2020.04+fio+gcbb11e17ea (Aug 12 2021 - 23:27:31 +0000)");
