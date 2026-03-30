@@ -6,7 +6,7 @@
 
 * [C] ~Create .ssh challenge?? (Maybe??)~ -- SCRAPPED!
 
-* [ ] Create jpg steganography challenge
+* [x] Create jpg steganography challenge
 
 * [ ] Create instruction sheet / hint sheet 
 
