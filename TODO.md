@@ -2,7 +2,7 @@
 
 * [x] Create vulnerable binary (buffer overflow - suuuuper simple one)
 
-* [ ] Test vulnerability w/ PoC
+* [x] Test vulnerability w/ PoC
 
 * [C] ~Create .ssh challenge?? (Maybe??)~ -- SCRAPPED!
 
