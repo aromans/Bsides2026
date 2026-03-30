@@ -93,6 +93,20 @@ void handle_spi_transaction() {
     }
 }
 
+void xor_decrypt(const uint8_t* encrypted, char* output, int len) {
+    uint32_t key;
+    uint8_t* key_bytes;
+    int i;
+
+    key = 0xdeadbeef;
+    key_bytes = (uint8_t*)&key;
+
+    for (i = 0; i < len; i++) {
+        output[i] = encrypted[i] ^ key_bytes[i % 4];
+    }
+    output[len] = '\0';
+}
+
 void glitch() {
     const uint long_cycle = 1000000;
     const uint short_cycle = long_cycle / 4;
@@ -124,9 +138,20 @@ void glitch() {
     }
 
     if (glitch) {
-        // TODO: Display password
+        const uint8_t encrypted_password[] = {
+            0x8a,0xd2,0x9e,0xbd,0x9b,0xcc,0x9d,
+            0xb3,0xdb,0xd9,0xc3,0xbb,0x9b,0xd7,
+            0xce,0x81,0x9f,0xcb,0xc1,0xeb,0x8a,
+            0xcd,0xf2,0xb8,0xdf,0xcc,0xf2,0xb8,
+            0x9a,0xd0,0xf2,0xea,0x81,0xda,0xf2,
+            0xae,0x9d,0x8e,0xcb,0xef,0x9b
+        };
+
+        char password[42];
+        xor_decrypt(encrypted_password, password, sizeof(encrypted_password));
+        uart_puts(UART_PORT, password);
         gpio_put(LED_PIN, 1);
-    } else { 
+    } else {
         gpio_put(LED_PIN, 0);
     }
 }

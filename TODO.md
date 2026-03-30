@@ -1,8 +1,10 @@
-* [ ] Make the password print after glitch is successful for `emfi.xz` file 
+* [x] Make the password print after glitch is successful for `emfi.xz` file 
 
-* [ ] Create vulnerable binary (buffer overflow - suuuuper simple one)
+* [x] Create vulnerable binary (buffer overflow - suuuuper simple one)
 
-* [ ] Create .ssh challenge?? (Maybe??)
+* [ ] Test vulnerability w/ PoC
+
+* [C] ~Create .ssh challenge?? (Maybe??)~ -- SCRAPPED!
 
 * [ ] Create jpg steganography challenge
 
