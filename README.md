@@ -24,22 +24,21 @@
 
 2) `/etc/shadow` will have a hash to crack
 	- john, hashcat, etc
-	- bcrypt hash: `$2a$12$iDuorex.9pY48VmlT16rLejDZcQ3/zW4Ah6oDfNeFcs9QCUdF5X.q`
+	- sha512 hash: `e553c9f0e41d7958fb5782004802970e1348620ce376ef642f2721ddf093e413bea7a3b3611d1cdbc06411fa4c904ecf397397c23d53894e3dbedb250688b75c`
 	- password: 25302530
 
 3) File can be found in `root` that is password protected
 	- EMFI glitch
 	- password: `el3ctr0m4gnetic_pul5es_f0r_fun_4nd_pr0f1t`
 
-4) Simple binary found `???` 
+4) Simple binary found in `tmp` 
 	- Buffer overflow vulnerability
+    - ROP chain exploit
 
-5) `.ssh` will have a private key (??? Maybe something else, since standing up a Linode server could cause difficulties with other players ???)
-	- `/home/hwh4ck3r` will have a `note.txt` with a server IP address. 
-	- Using that private key, same user name, and server IP will allow someone to log into the server and get a flag. 
-
-6) Maybe a `jpg` could be found in `tmp`
+5) `png` file found in `home/haxor`
     	- Steganography flag 
+        - flag hidden in alpha channel
+        - use zsteg to get the flag
 
 
 
