@@ -7,33 +7,31 @@
 #include "squashfs_data.h"
 
 const uint8_t *firmware_image = rootfs_sqsh;
-const uint32_t firmware_size = sizeof(firmware_image);
 
 const uint LED_PIN = PICO_DEFAULT_LED_PIN;
 
 volatile bool interrupted = false;
 
-#define UART_PORT uart0
-#define BAUD_RATE 133767
-#define UART_TX  2
-#define UART_RX  3
+#define UART_ID uart1
+#define BAUD_RATE 115200
+#define UART_TX  4
+#define UART_RX  5
 
 #define SPI_PORT spi0
-#define PIN_MISO 15
-#define PIN_MOSI 11
-#define PIN_SCK  13
-#define PIN_CS   14
+#define PIN_MISO 16
+#define PIN_MOSI 19
+#define PIN_SCK  18
+#define PIN_CS   17
 
 void uart_initialization() {
-    uart_init(UART_PORT, BAUD_RATE);
-
-    gpio_set_function(UART_TX, GPIO_FUNC_UART);
-    gpio_set_function(UART_RX, GPIO_FUNC_UART);
+    uart_init(UART_ID, BAUD_RATE);
+    gpio_set_function(UART_TX, GPIO_FUNC_UART); //TX
+    gpio_set_function(UART_RX, GPIO_FUNC_UART); //RX
 }
 
 void on_uart_rx() {
-    while (uart_is_readable(UART_PORT)) {
-        uint8_t ch = uart_getc(UART_PORT);
+    while (uart_is_readable(UART_ID)) {
+        uint8_t ch = uart_getc(UART_ID);
         if (ch == '\r' || ch == '\n') {
             interrupted = true;
         }
@@ -41,33 +39,33 @@ void on_uart_rx() {
 }
 
 void bootloader_countdown() {
-    for (int i = 5; i < 0; i++) {
-        char buff[20];
-        snprintf(buff, sizeof(buff), "Booting in %d seconds...\r\n", i);
-        uart_puts(UART_PORT, buff);
+    for (int i = 5; i >= 0; i--) {
+        char buff[35];
+        snprintf(buff, sizeof(buff), "Hit any key to stop autoboot: %d\r", i);
+        uart_puts(UART_ID, buff);
 
         for (int j = 0; j < 10; j++) {
-            sleep_ms(10);
+            sleep_ms(100);
             if (interrupted) {
                 goto interrupted;
             }
         }
     }
 
-    uart_puts(UART_PORT, "\r\n");
-    uart_puts(UART_PORT, "Loading...\r\n");
+    uart_puts(UART_ID, "\r\n");
+    uart_puts(UART_ID, "Loading...\r\n");
     sleep_ms(500);
-    uart_puts(UART_PORT, "System startup complete.\r\n");
+    uart_puts(UART_ID, "System startup complete.\r\n");
     return;
 
 interrupted:
-    uart_puts(UART_PORT, "\r\n");
-    uart_puts(UART_PORT, "*** Boot interrupted ***\r\n");
-    uart_puts(UART_PORT, "\r\n");
-    uart_puts(UART_PORT, "________________________\r\n");
+    uart_puts(UART_ID, "\r\n");
+    uart_puts(UART_ID, "*** Boot interrupted ***\r\n");
+    uart_puts(UART_ID, "\r\n");
+    uart_puts(UART_ID, "________________________\r\n");
     sleep_ms(200);
-    uart_puts(UART_PORT, "flag{b00tl04d3r_1nt3rrupt3r}\r\n");
-    uart_puts(UART_PORT, "________________________\r\n");
+    uart_puts(UART_ID, "flag{b00tl04d3r_1nt3rrupt3r}\r\n");
+    uart_puts(UART_ID, "________________________\r\n");
 }
 
 void spi_initialization() {
@@ -83,13 +81,10 @@ uint32_t read_address = 0;
 
 void handle_spi_transaction() {
     uint8_t rx_data;
-    if (spi_is_readable(SPI_PORT)) {
+    while (read_address < rootfs_sqsh_len) {
         spi_read_blocking(SPI_PORT, 0xFF, &rx_data, 1);
-
-        if (read_address < firmware_size) {
-            spi_write_blocking(SPI_PORT, &firmware_image[read_address], 1);
-            read_address++;
-        }
+        spi_write_blocking(SPI_PORT, &firmware_image[read_address], 1);
+        read_address++;
     }
 }
 
@@ -149,7 +144,7 @@ void glitch() {
 
         char password[42];
         xor_decrypt(encrypted_password, password, sizeof(encrypted_password));
-        uart_puts(UART_PORT, password);
+        printf("Password: %s\n", password);
         gpio_put(LED_PIN, 1);
     } else {
         gpio_put(LED_PIN, 0);
@@ -160,13 +155,15 @@ int main()
 {
     stdio_init_all();
 
+    printf("Hello, world!");
+
     uart_initialization();
     spi_initialization();
 
-    int UART_IRQ = 20;
+    int UART_IRQ = UART1_IRQ;
     irq_set_exclusive_handler(UART_IRQ, on_uart_rx);
     irq_set_enabled(UART_IRQ, true);
-    uart_set_irq_enables(UART_IRQ, true, false);
+    uart_set_irq_enables(UART_ID, true, false);
 
     sleep_ms(1000);
 
@@ -175,17 +172,15 @@ int main()
 
     glitch();
 
-    uart_puts(UART_PORT, "U-Boot 2020.04+fio+gcbb11e17ea (Aug 12 2021 - 23:27:31 +0000)");
-    uart_puts(UART_PORT, "\r\n");
+    uart_puts(UART_ID, "U-Boot 2020.04+fio+gcbb11e17ea (Aug 12 2021 - 23:27:31 +0000)");
+    uart_puts(UART_ID, "\r\n");
     sleep_ms(200);
-    uart_puts(UART_PORT, "\r\n");
+    uart_puts(UART_ID, "\r\n");
     sleep_ms(200);
-    uart_puts(UART_PORT, "[    0.000000] Booting Linux on physical CPU 0x0\r\n");
-    uart_puts(UART_PORT, "[    0.000000] Linux version 5.10.0-embedded\r\n");
+    uart_puts(UART_ID, "[    0.000000] Booting Linux on physical CPU 0x0\r\n");
+    uart_puts(UART_ID, "[    0.000000] Linux version 5.10.0-embedded\r\n");
 
     handle_spi_transaction();
 
     bootloader_countdown();
-
-    return 0;
 }
