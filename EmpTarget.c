@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "hardware/spi.h"
+#include <stdint.h>
 #include "hardware/uart.h"
 #include "hardware/irq.h"
 
@@ -17,7 +17,6 @@ volatile bool interrupted = false;
 #define UART_TX  4
 #define UART_RX  5
 
-#define SPI_PORT spi0
 #define PIN_MISO 16
 #define PIN_MOSI 19
 #define PIN_SCK  18
@@ -68,24 +67,50 @@ interrupted:
     uart_puts(UART_ID, "________________________\r\n");
 }
 
-void spi_initialization() {
-    spi_init(SPI_PORT, 1000000); 
+// Bit-bang SPI: all 4 pins are outputs so we control both MOSI and MISO.
+// MOSI carries the command/address/dummy bytes (what a real CPU would send).
+// MISO carries the firmware data (what a real flash chip would respond with).
+// A logic analyzer clipped to these pins sees a realistic SPI flash read.
 
-    gpio_set_function(PIN_MISO, GPIO_FUNC_SPI);
-    gpio_set_function(PIN_MOSI, GPIO_FUNC_SPI);
-    gpio_set_function(PIN_SCK, GPIO_FUNC_SPI);
-    gpio_set_function(PIN_CS, GPIO_FUNC_SPI);
+static void bb_clock_bit(uint8_t mosi_bit, uint8_t miso_bit) {
+    gpio_put(PIN_MOSI, mosi_bit);
+    gpio_put(PIN_MISO, miso_bit);
+    gpio_put(PIN_SCK, 1);
+    sleep_us(1);
+    gpio_put(PIN_SCK, 0);
+    sleep_us(1);
 }
 
-uint32_t read_address = 0;
+static void bb_send(uint8_t mosi_byte, uint8_t miso_byte) {
+    for (int i = 7; i >= 0; i--) {
+        bb_clock_bit((mosi_byte >> i) & 1, (miso_byte >> i) & 1);
+    }
+}
+
+void spi_initialization() {
+    gpio_init(PIN_CS);   gpio_set_dir(PIN_CS,   GPIO_OUT); gpio_put(PIN_CS,   1);
+    gpio_init(PIN_SCK);  gpio_set_dir(PIN_SCK,  GPIO_OUT); gpio_put(PIN_SCK,  0);
+    gpio_init(PIN_MOSI); gpio_set_dir(PIN_MOSI, GPIO_OUT); gpio_put(PIN_MOSI, 0);
+    gpio_init(PIN_MISO); gpio_set_dir(PIN_MISO, GPIO_OUT); gpio_put(PIN_MISO, 0);
+}
 
 void handle_spi_transaction() {
-    uint8_t rx_data;
-    while (read_address < rootfs_sqsh_len) {
-        spi_read_blocking(SPI_PORT, 0xFF, &rx_data, 1);
-        spi_write_blocking(SPI_PORT, &firmware_image[read_address], 1);
-        read_address++;
+    gpio_put(PIN_CS, 0);  // assert CS — transaction begins
+    sleep_us(1);
+
+    // Command phase: READ (0x03) + 24-bit address 0x000000
+    // MISO stays 0x00 during command (flash not responding yet)
+    bb_send(0x03, 0x00);
+    bb_send(0x00, 0x00);
+    bb_send(0x00, 0x00);
+    bb_send(0x00, 0x00);
+
+    // Data phase: master sends dummy 0xFF, flash responds with firmware on MISO
+    for (uint32_t i = 0; i < rootfs_sqsh_len; i++) {
+        bb_send(0xFF, firmware_image[i]);
     }
+
+    gpio_put(PIN_CS, 1);  // deassert CS — transaction complete
 }
 
 void xor_decrypt(const uint8_t* encrypted, char* output, int len) {

@@ -1,0 +1,52 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+// You're welcome x1
+void __attribute__((used)) pop_rdi_ret() {
+	__asm__("pop %rdi; ret");
+}
+
+// You're welcome x2
+void __attribute__((used)) pop_rsi_ret() {
+	__asm__("pop %rsi; ret");
+}
+
+void xor(const uint8_t* encrypted, uint32_t key, char* output, size_t len) {
+	uint8_t* key_bytes = (uint8_t*)&key;
+	int i;
+
+	for (i = 0; i < len; i++) {
+		output[i] = encrypted[i] ^ key_bytes[i % 4];
+	}
+}
+
+// Sure, you COULD reverse this function, decode the XOR, and get the flag...
+// But you just dumped a filesystem from SPI flash on a Pico. You're better than that.
+// Smash that stack like the 1337 hacker you pretend to be at parties.
+void cant_touch_this(unsigned int magic1, unsigned int magic2) {
+	const uint8_t encrypted_password[] = {
+		0x59,0x9,0x10,0x76,0x50,0x12,0x1f,
+		0x65,0x48,0x4e,0x6,0x41,0x52,0x4a,
+		0x1d,0x6a,0x6e,0xa,0x43,0x6b,0x52,
+		0x16,0x2c,0x6a,0x59,0x4f,0x0,0x41,
+		0x53,0xb,0x7,0x41,0x48,0x4e,0x6,
+		0x41,0x55,0x4f,0x17,0x63
+	};
+
+	if (magic1 == 0xdeadbeef && magic2 == 0xc0dec0de) {
+		char password[40];
+		xor(encrypted_password, magic2, password, sizeof(encrypted_password));
+		xor(password, magic1, password, sizeof(encrypted_password));
+		printf("%s\n", password);
+	}
+}
+
+int main(int argc, char*argv[]) {
+	char value[100];
+	FILE *fp = fopen("important.txt", "r");
+	if (fp == NULL) { return 1; }
+	fscanf(fp, "%s", value); 
+    	printf("Content: %s\n", value);
+	return 0;
+}
