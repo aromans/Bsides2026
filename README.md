@@ -2,7 +2,7 @@
 
 ## Hardware (Pico rp2040)
  
-1) UART boot glitch
+1) UART boot interrupt
 	- UART will require to press enter within 5s to get flag.
 	- (Representing unlocked bootloader)
 
