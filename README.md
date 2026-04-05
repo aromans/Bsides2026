@@ -2,18 +2,15 @@
 
 ## Hardware (Pico rp2040)
  
-1) Discover which pins are UART
-	- Discover unique baud rate (requires logic analyzer)
-
-2) UART boot glitch
+1) UART boot glitch
 	- UART will require to press enter within 5s to get flag.
 	- (Representing unlocked bootloader)
 
-3) Discover which pins are SPI
+2) Discover which pins are SPI
 	- Requires probing pins for data (requires multimeter or logic analyzer)
 	- Download firmware over SPI (saleae software, SPI analyzer + CSV download)
 
-4) EMFI Glitch during "boot" 
+3) EMFI Glitch during "boot" 
 	- This will be hinted in firmware
 	- A successful EMFI glitch will give (password???) for a file
 
